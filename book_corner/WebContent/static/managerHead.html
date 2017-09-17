@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link href="static/css/main.css" rel="stylesheet" type="text/css">
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+	<div class="container">
+		<ul class="menu">
+			<li><a  onclick="backToLastStep()">返回</a></li>
+			<li><a href="">书籍管理</a>
+				<ul class="submenu">
+					<li><a href="/book_corner/backBookManageListQuery">图书管理</a></li>
+					<li><a href="/book_corner/insertBookPage">录入新书</a></li>
+					<li><a
+						href="">图书类别</a></li>
+					<li><a
+						href="">图书来源</a></li>
+					<li><a
+						href="">设置</a></li>
+				</ul></li>
+			<li class="active"><a
+				href=" s2">成员管理</a>
+				<ul class="submenu">
+					<li><a
+						href="">审核名单</a></li>
+					<li><a
+						href="">成员名单</a></li>
+					<li><a
+						href="">用户排行</a></li>
+					<li><a href="/book_corner/bookBorrowRecord">借阅记录查询</a></li>
+				</ul></li>
+			<li><a
+				href="">系统管理</a>
+				<ul class="submenu">
+					<li><a
+						href="">权限管理</a></li>
+				</ul></li>
+			<li><a
+				href="">当前管理员：${sessionScope.system_manager.getManagerName()!=null?sessionScope.system_manager.getManagerName():"游客"}</a></li>
+			<li><a
+				href="">退出登录</a></li>
+		</ul>
+	</div>
+</body>
+</html>

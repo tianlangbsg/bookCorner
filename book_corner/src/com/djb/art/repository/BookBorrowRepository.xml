@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.djb.art.repository.BookBorrowRepository">
+
+	<resultMap id="BaseResultMap" type="com.djb.art.model.BookBorrow">
+		<id column="BORROW_ID" jdbcType="INTEGER" property="borrowId" />
+		<result column="BOOK_ID" jdbcType="INTEGER" property="bookId" />
+		<result column="BOOK_NAME" jdbcType="INTEGER" property="bookName" />
+		<result column="USER_ID" jdbcType="INTEGER" property="userId" />
+		<result column="USER_NAME" jdbcType="INTEGER" property="userName" />
+		<result column="BORROW_DATE" jdbcType="VARCHAR" property="borrowDate" />
+		<result column="PLAN_RETURN_DATE" jdbcType="VARCHAR" property="planReturnDate" />
+		<result column="RETURN_DATE" jdbcType="VARCHAR" property="returnDate" />
+		<result column="CREATED_AT" jdbcType="DATE" property="createdAt" />
+		<result column="UPDATED_AT" jdbcType="DATE" property="updatedAt" />
+	</resultMap>
+	<sql id="Base_Column_List">
+		BORROW_ID,BOOK_ID,USER_ID,BORROW_DATE,PLAN_RETURN_DATE,RETURN_DATE,CREATED_AT,UPDATED_AT
+	</sql>
+
+	<!-- 创建借书记录 -->
+	<insert id="insertBookBorrow" parameterType="com.djb.art.model.BookBorrow">
+          INSERT INTO  BOOK_BORROW_INFO(BOOK_ID,USER_ID,BORROW_DATE,PLAN_RETURN_DATE,
+			   RETURN_DATE,CREATED_AT,UPDATED_AT)
+               VALUES   
+               (#{bookId,jdbcType=INTEGER},#{userId,jdbcType=INTEGER},DATE_FORMAT(NOW(),'%Y%m%d'),
+               DATE_FORMAT(
+               	  DATE_ADD(NOW(),
+               			   INTERVAL CONVERT(TRIM((SELECT SET_VALUES FROM SYSTEM_PARMSET_INFO WHERE PARM_ID = 1)),SIGNED) DAY
+               			   ),
+               			   '%Y%m%d'),
+               NULL,NOW(),NOW())
+	</insert>
+
+	<!-- 更改计划还书日期 -->
+	<update id="updatePlanReturnDate" parameterType="com.djb.art.model.BookBorrow">
+         UPDATE BOOK_BORROW_INFO SET PLAN_RETURN_DATE= #{planReturnDate,jdbcType=VARCHAR}
+       	     WHERE RETURN_DATE IS NULL AND BOOK_ID = #{bookId,jdbcType=INTEGER}
+             AND USER_ID = #{userId,jdbcType=INTEGER}
+	</update>
+
+	<!-- 还书-->
+	<update id="returnBook" parameterType="com.djb.art.model.BookBorrow">
+		 UPDATE BOOK_BORROW_INFO SET 
+			 RETURN_DATE= DATE_FORMAT(NOW(),'%Y%m%d')  
+			 WHERE USER_ID= #{userId,jdbcType=INTEGER} AND BOOK_ID = #{bookId,jdbcType=INTEGER}
+	</update>
+
+	<!-- 取得用户中心的借阅详情 -->
+	<select id="selectMyBorrow" parameterType="java.lang.Integer"
+		resultMap="BaseResultMap">
+		SELECT A.BORROW_ID,A.BOOK_ID,B.BOOK_NAME,DATE_FORMAT(A.BORROW_DATE,"%Y-%m-%d") AS BORROW_DATE,DATE_FORMAT(A.RETURN_DATE,"%Y-%m-%d") AS RETURN_DATE,
+			DATE_FORMAT(A.PLAN_RETURN_DATE,"%Y-%m-%d") AS PLAN_RETURN_DATE
+               FROM  BOOK_BORROW_INFO A
+               LEFT JOIN  BOOK_INFO B  ON A.BOOK_ID = B.BOOK_ID WHERE B.DEL_FLAG='0' AND A.USER_ID = #{userId,jdbcType=INTEGER}
+               ORDER BY  BORROW_DATE DESC
+	</select>
+
+	<!-- 取得指定用户的借阅书单 -->
+	<select id="selectBorrowsByByUserId" parameterType="java.lang.Integer"
+		resultMap="BaseResultMap">
+		SELECT A.BORROW_ID,A.BOOK_ID,B.BOOK_NAME,DATE_FORMAT(A.BORROW_DATE,"%Y-%m-%d") AS BORROW_DATE,DATE_FORMAT(A.RETURN_DATE,"%Y-%m-%d") AS RETURN_DATE,
+			DATE_FORMAT(A.PLAN_RETURN_DATE,"%Y-%m-%d") AS PLAN_RETURN_DATE
+               FROM  BOOK_BORROW_INFO A
+               LEFT JOIN  BOOK_INFO B  ON A.BOOK_ID = B.BOOK_ID 
+               WHERE B.DEL_FLAG='0' AND A.USER_ID = #{userId,jdbcType=INTEGER}
+               ORDER BY  BORROW_DATE DESC
+	</select>
+
+	<!-- 取得用户的本书计划还书日期 -->
+	<select id="selectPlanReturnDate" parameterType="com.djb.art.model.BookBorrowOption"
+		resultType="java.lang.String">
+			SELECT DATE_FORMAT(PLAN_RETURN_DATE,'%Y年%m月%d日') AS PLAN_RETURN_DATE FROM BOOK_BORROW_INFO
+				WHERE USER_ID = #{userId,jdbcType=INTEGER} AND BOOK_ID = #{bookId,jdbcType=INTEGER}
+				AND RETURN_DATE IS NULL
+	            ORDER BY  BORROW_DATE DESC LIMIT 1
+	</select>
+
+	<!-- 取得单本图书借阅历史,带条件查询-->
+	<select id="selectBorrowByBookId" parameterType="com.djb.art.model.BookBorrowOption"
+		resultMap="BaseResultMap">
+		SELECT C.USER_FULLNAME AS USER_NAME,C.USER_ID,A.BORROW_ID,A.BOOK_ID,
+							 DATE_FORMAT(A.BORROW_DATE,"%Y-%m-%d") AS BORROW_DATE,DATE_FORMAT(A.RETURN_DATE,"%Y-%m-%d") AS RETURN_DATE
+               FROM  BOOK_BORROW_INFO A
+               LEFT JOIN  USER_INFO C  ON A.USER_ID = C.USER_ID
+               WHERE A.BOOK_ID = #{bookId,jdbcType=INTEGER}
+				<if test="returnStatus==1">
+					AND A.RETURN_DATE IS NOT NULL
+				</if>
+				<if test="returnStatus==2">
+					AND A.RETURN_DATE IS NULL
+				</if>
+
+				<if test='!startDate.equals("")'>
+					<if test='!endDate.equals("")'>
+						AND DATE_FORMAT(A.BORROW_DATE,"%Y-%m-%d")  BETWEEN #{startDate,jdbcType=VARCHAR} AND #{endDate,jdbcType=VARCHAR}
+					</if>
+				</if>
+
+				<if test='startDate.equals("")'>
+					<if test='!endDate.equals("")'>
+						AND DATE_FORMAT(A.BORROW_DATE,"%Y-%m-%d") &lt; #{endDate,jdbcType=VARCHAR}
+					</if>
+				</if>
+				<if test='!startDate.equals("")'>
+					<if test='endDate.equals("")'>
+						AND DATE_FORMAT(A.BORROW_DATE,"%Y-%m-%d") &gt; #{startDate,jdbcType=VARCHAR}
+					</if>
+				</if>
+				ORDER BY BORROW_DATE DESC
+	</select>
+
+	<!-- 取得所有借阅历史,带条件查询-->
+	<select id="selectBorrowRecord" parameterType="com.djb.art.model.BookBorrowOption"
+		resultMap="BaseResultMap">
+		SELECT C.USER_FULLNAME AS USER_NAME,C.USER_ID,A.BORROW_ID,A.BOOK_ID,
+			   DATE_FORMAT(A.BORROW_DATE,"%Y-%m-%d") AS BORROW_DATE,DATE_FORMAT(A.RETURN_DATE,"%Y-%m-%d") AS RETURN_DATE
+               FROM  BOOK_BORROW_INFO A
+               LEFT JOIN  USER_INFO C  ON A.USER_ID = C.USER_ID
+				<if test="returnStatus==0">
+					WHERE 1=1
+				</if>
+				<if test="returnStatus==1">
+					WHERE A.RETURN_DATE IS NOT NULL
+				</if>
+				<if test="returnStatus==2">
+					WHERE A.RETURN_DATE IS NULL
+				</if>
+
+				<if test='!startDate.equals("")'>
+					<if test='!endDate.equals("")'>
+						AND DATE_FORMAT(A.BORROW_DATE,"%Y-%m-%d")  BETWEEN #{startDate,jdbcType=VARCHAR} AND #{endDate,jdbcType=VARCHAR}
+					</if>
+				</if>
+				<if test='startDate.equals("")'>
+					<if test='!endDate.equals("")'>
+						AND DATE_FORMAT(A.BORROW_DATE,"%Y-%m-%d") &lt; #{endDate,jdbcType=VARCHAR}
+					</if>
+				</if>
+				<if test='!startDate.equals("")'>
+					<if test='endDate.equals("")'>
+						AND DATE_FORMAT(A.BORROW_DATE,"%Y-%m-%d") &gt; #{startDate,jdbcType=VARCHAR}
+					</if>
+				</if>
+				ORDER BY BORROW_DATE DESC
+	</select>
+</mapper>

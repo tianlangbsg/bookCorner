@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.djb.art.repository.BookCommentRepository">
+
+	<resultMap id="BaseResultMap" type="com.djb.art.model.BookComment">
+		<id column="COMMENT_ID" jdbcType="INTEGER" property="commentId" />
+		<result column="BOOK_ID" jdbcType="INTEGER" property="bookId" />
+		<result column="BOOK_NAME" jdbcType="VARCHAR" property="bookName" />
+		<result column="USER_ID" jdbcType="INTEGER" property="userId" />
+		<result column="USER_NAME" jdbcType="VARCHAR" property="userName" />
+		<result column="COMMENT_GRADE" jdbcType="CHAR" property="commentGrade" />
+		<result column="ANONYMOU_FLAG" jdbcType="CHAR" property="anonymouFlag" />
+		<result column="COMMENT" jdbcType="VARCHAR" property="comment" />
+		<result column="DEL_FLAG" jdbcType="CHAR" property="delFlag" />
+		<result column="CREATED_AT" jdbcType="DATE" property="createdAt" />
+		<result column="UPDATED_AT" jdbcType="DATE" property="updatedAt" />
+	</resultMap>
+	<sql id="Base_Column_List">
+		COMMENT_ID,BOOK_ID,USER_ID,COMMENT_GRADE,ANONYMOU_FLAG,COMMENT,DEL_FLAG,CREATED_AT,UPDATED_AT
+	</sql>
+
+	<!-- 根据图书ID查询书评 -->
+	<select id="selectBookComments" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+		SELECT
+			BCI.ANONYMOU_FLAG, UI.USER_FULLNAME AS USER_NAME,BCI.COMMENT_GRADE,BCI.COMMENT,BCI.CREATED_AT
+			FROM BOOK_COMMENT_INFO BCI
+            LEFT JOIN  USER_INFO UI  ON BCI.USER_ID = UI.USER_ID
+            <where>BCI.DEL_FLAG = '0'  AND  BCI.BOOK_ID = #{bookId,jdbcType=INTEGER} </where>
+            ORDER BY CREATED_AT DESC
+	</select>
+
+	<!-- 创建书评记录 -->
+	<insert id="insertBookComment" parameterType="com.djb.art.model.BookComment">
+		INSERT INTO  BOOK_COMMENT_INFO(USER_ID,BOOK_ID,COMMENT_GRADE,
+             COMMENT,ANONYMOU_FLAG,DEL_FLAG,CREATED_AT,UPDATED_AT)
+             VALUES   (#{userId,jdbcType=INTEGER},#{bookId,jdbcType=INTEGER},
+             #{commentGrade,jdbcType=CHAR},#{comment,jdbcType=VARCHAR},
+             <if test='anonymouFlag.equals("0")'>'0',</if>
+             <if test='!anonymouFlag.equals("0")'>'1',</if>
+             '0',NOW(),NOW()) 
+	</insert>
+
+	<!-- 删除书评记录 -->
+	<update id="deleteBookComment" parameterType="com.djb.art.model.BookComment">
+		UPDATE BOOK_COMMENT_INFO SET DEL_FLAG='1'
+			WHERE COMMENT_ID = #{commentId,jdbcType=INTEGER}
+	</update>
+	
+	<!-- 用户中心的评论详情 -->
+	<select id="selectMyComment" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+		SELECT BI.BOOK_NAME,BI.BOOK_ID,BCI.COMMENT_GRADE,BCI.ANONYMOU_FLAG,BCI.COMMENT_ID,
+			BCI.COMMENT,BCI.COMMENT_ID,BCI.CREATED_AT
+			FROM BOOK_COMMENT_INFO BCI
+            LEFT JOIN  BOOK_INFO BI ON BCI.BOOK_ID = BI.BOOK_ID WHERE  BI.DEL_FLAG = '0'
+            AND  BCI.USER_ID = #{userId,jdbcType=INTEGER} AND BCI.DEL_FLAG = '0'
+            ORDER BY CREATED_AT DESC
+	</select>
+</mapper>

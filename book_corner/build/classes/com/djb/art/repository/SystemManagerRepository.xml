@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.djb.art.repository.SystemManagerRepository">
+
+	<resultMap id="BaseResultMap" type="com.djb.art.model.SystemManager">
+		<id column="MANAGER_ID" jdbcType="INTEGER" property="managerId" />
+		<result column="MANAGER_NAME" jdbcType="VARCHAR" property="managerName" />
+		<result column="MANAGER_PASSWORD" jdbcType="VARCHAR" property="managerPassword" />
+		<result column="CREATED_AT" jdbcType="TIMESTAMP" property="createdAt" />
+		<result column="UPDATED_AT" jdbcType="TIMESTAMP" property="updatedAt" />
+	</resultMap>
+
+	<select id="selectManagerIdByName" parameterType="java.lang.String"
+		resultMap="BaseResultMap">
+		SELECT
+			*
+			FROM SYSTEM_MANAGER_INFO
+			<where> MANAGER_NAME LIKE CONCAT('%',#{managerName,jdbcType=VARCHAR},'%')</where>
+	</select>
+	
+	<select id="selectManagerIdByPassword" parameterType="java.lang.String"
+		resultMap="BaseResultMap">
+		SELECT
+			MANAGER_ID
+			FROM SYSTEM_MANAGER_INFO
+			<where> MANAGER_PASSWORD = #{managerPassword,jdbcType=VARCHAR}</where>
+	</select>
+	
+	<!--查询待审核人员数目  -->
+	<select id="selectNotReviewUserCount" resultType="java.lang.Integer">
+		SELECT COUNT(*) FROM USER_REVIEW_INFO WHERE REVIEW_FLAG='0'
+	</select>
+	
+	<!--查询有效人员数目  -->
+	<select id="selectValidUserCount" resultType="java.lang.Integer">
+		SELECT COUNT(*) FROM USER_INFO WHERE VALID_FLAG='0'
+	</select>
+	
+	<!--查询个人最大借阅本数  -->
+	<select id="selectMaxBorrowCount" resultType="java.lang.String">
+		SELECT SET_VALUES FROM SYSTEM_PARMSET_INFO WHERE PARM_ID=2
+	</select>
+	
+	<!-- 插入新的图书记录-->
+	<insert id="insertBook" parameterType="com.djb.art.model.Book">
+		INSERT INTO BOOK_INFO(BOOK_BARCODE,BOOK_NAME,BOOK_INTRO, 
+				BOOK_TYPE_ID,SOURCE_ID,CONTRIBUTOR_ID,
+				BORROW_FLAG,DEL_FLAG,CREATED_USER,
+				UPDATED_USER,CREATED_AT,UPDATED_AT,PIC_PATH,
+				PICTURE1,PICTURE2,PICTURE3,PICTURE4,PICTURE5,PICTURE6,PICTURE7,PICTURE8,PICTURE9) 
+				VALUES(
+				#{bookBarcode,jdbcType=VARCHAR},#{bookName,jdbcType=VARCHAR},#{bookIntro,jdbcType=VARCHAR},
+				#{bookTypeId,jdbcType=INTEGER},#{sourceId,jdbcType=INTEGER},#{contributorId,jdbcType=INTEGER},
+				1,0,#{createdUser,jdbcType=INTEGER},
+				#{updatedUser,jdbcType=INTEGER},NOW(),NOW(),#{picPath,jdbcType=VARCHAR},
+				#{picture1,jdbcType=VARCHAR},#{picture2,jdbcType=VARCHAR},#{picture3,jdbcType=VARCHAR},
+				#{picture4,jdbcType=VARCHAR},#{picture5,jdbcType=VARCHAR},#{picture6,jdbcType=VARCHAR},
+				#{picture7,jdbcType=VARCHAR},#{picture8,jdbcType=VARCHAR},#{picture9,jdbcType=VARCHAR}
+				)
+	</insert>
+	
+	<!-- 更新图书记录 -->
+	<insert id="updateBook" parameterType="com.djb.art.model.Book">
+			UPDATE BOOK_INFO SET 
+				BOOK_BARCODE=#{bookBarcode,jdbcType=VARCHAR},
+				BOOK_NAME=#{bookName,jdbcType=VARCHAR},
+				BOOK_INTRO=#{bookIntro,jdbcType=VARCHAR},
+				BOOK_TYPE_ID=#{bookTypeId,jdbcType=INTEGER},
+				SOURCE_ID=#{sourceId,jdbcType=INTEGER},
+				CONTRIBUTOR_ID=#{contributorId,jdbcType=INTEGER},
+				BORROW_FLAG=1,DEL_FLAG=0,
+				UPDATED_USER=#{updatedUser,jdbcType=INTEGER},
+				UPDATED_AT=NOW()
+				<if test='picture1!=null'>,PICTURE1=#{picture1,jdbcType=VARCHAR}</if>
+				<if test='picture2!=null'>,PICTURE2=#{picture2,jdbcType=VARCHAR}</if>
+				<if test='picture3!=null'>,PICTURE3=#{picture3,jdbcType=VARCHAR}</if>
+				<if test='picture4!=null'>,PICTURE4=#{picture4,jdbcType=VARCHAR}</if>
+				<if test='picture5!=null'>,PICTURE5=#{picture5,jdbcType=VARCHAR}</if>
+				<if test='picture6!=null'>,PICTURE6=#{picture6,jdbcType=VARCHAR}</if>
+				<if test='picture7!=null'>,PICTURE7=#{picture7,jdbcType=VARCHAR}</if>
+				<if test='picture8!=null'>,PICTURE8=#{picture8,jdbcType=VARCHAR}</if>
+				<if test='picture9!=null'>,PICTURE9=#{picture9,jdbcType=VARCHAR}</if>
+				WHERE BOOK_ID = #{bookId,jdbcType=VARCHAR}
+	</insert>
+		
+	<!--删除图书编辑页面的图片  -->
+	<update id="deleteBookPic" parameterType="com.djb.art.model.Book">
+		UPDATE BOOK_INFO SET
+			<if test='picId==1'>PICTURE1=null</if>
+			<if test='picId==2'>PICTURE2=null</if>
+			<if test='picId==3'>PICTURE3=null</if>
+			<if test='picId==4'>PICTURE4=null</if>
+			<if test='picId==5'>PICTURE5=null</if>
+			<if test='picId==6'>PICTURE6=null</if>
+			<if test='picId==7'>PICTURE7=null</if>
+			<if test='picId==8'>PICTURE8=null</if>
+			<if test='picId==9'>PICTURE9=null</if>
+			where BOOK_ID = #{bookId,jdbcType=INTEGER}
+	</update>
+		
+	<!--上架图书  -->
+	<update id="enableBook" parameterType="com.djb.art.model.Book">
+		UPDATE BOOK_INFO
+		<set>
+		DEL_FLAG = '0',
+		UPDATED_USER = #{updatedUser,jdbcType=VARCHAR},
+		UPDATED_AT = NOW()
+		</set>
+		where BOOK_ID = #{bookId,jdbcType=INTEGER}
+	</update>
+		
+	<!--下架图书  -->
+	<update id="disableBook" parameterType="com.djb.art.model.Book">
+		UPDATE BOOK_INFO
+		<set>
+		DEL_FLAG = '1',
+		UPDATED_USER = #{updatedUser,jdbcType=VARCHAR},
+		UPDATED_AT = NOW()
+		</set>
+		where BOOK_ID = #{bookId,jdbcType=INTEGER}
+	</update>
+		
+	<!--添加管理员权限  -->
+	<update id="addManagerRight" parameterType="java.lang.Integer">
+		UPDATE USER_INFO
+		<set>
+		USER_AUTH_FLAG = '1',
+		UPDATED_AT = NOW()
+		</set>
+		WHERE USER_ID = #{userId,jdbcType=INTEGER}
+	</update>
+		
+	<!--删除管理员权限  -->
+	<update id="deleteManagerRight" parameterType="java.lang.Integer">
+		UPDATE USER_INFO
+		<set>
+		USER_AUTH_FLAG = '0',
+		UPDATED_AT = NOW()
+		</set>
+		WHERE USER_ID = #{userId,jdbcType=INTEGER}
+	</update>
+
+	
+</mapper>

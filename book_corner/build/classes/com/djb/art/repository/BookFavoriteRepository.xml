@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.djb.art.repository.BookFavoriteRepository">
+
+	<resultMap id="BaseResultMap" type="com.djb.art.model.BookFavorite">
+		<id column="FAVORITE_ID" jdbcType="INTEGER" property="favoriteId" />
+		<result column="BOOK_ID" jdbcType="INTEGER" property="bookId" />
+		<result column="USER_ID" jdbcType="INTEGER" property="userId" />
+		<result column="DEL_FLAG" jdbcType="CHAR" property="delFlag" />
+		<result column="CREATED_AT" jdbcType="DATE" property="createdAt" />
+		<result column="UPDATED_AT" jdbcType="DATE" property="updatedAt" />
+	</resultMap>
+	<sql id="Base_Column_List">
+		FAVORITE_ID,BOOK_ID,USER_ID,DEL_FLAG,CREATED_AT,UPDATED_AT
+	</sql>
+
+	<!-- 创建收藏记录 -->
+	<insert id="insertFavorite" parameterType="com.djb.art.model.BookFavorite">
+		INSERT INTO  BOOK_FAVORITE_INFO(
+		BOOK_ID,USER_ID,DEL_FLAG,CREATED_AT,UPDATED_AT) VALUES(
+        #{bookId,jdbcType=INTEGER},
+        #{userId,jdbcType=INTEGER},
+        1,
+        NOW(),
+        NOW()
+        )
+	</insert>
+	
+	<!-- 查询是否有过收藏记录-->
+	<select id="selectIfFavorite" resultMap="BaseResultMap" parameterType="com.djb.art.model.BookFavorite">
+		SELECT * FROM BOOK_FAVORITE_INFO  WHERE BOOK_ID =  #{bookId,jdbcType=INTEGER} AND USER_ID = #{userId,jdbcType=INTEGER}
+		LIMIT 1
+	</select>
+	
+	<!--更新收藏（加入收藏）  -->
+	<update id="updateFavorite" parameterType="com.djb.art.model.BookFavorite">
+		UPDATE BOOK_FAVORITE_INFO
+		<set>
+		DEL_FLAG = '1',
+		UPDATED_AT = NOW()
+		</set>
+		where USER_ID = #{userId,jdbcType=INTEGER} AND BOOK_ID =#{bookId,jdbcType=INTEGER}
+	</update>
+	
+	<!--更新收藏（取消收藏）  -->
+	<update id="cancelFavorite" parameterType="com.djb.art.model.BookFavorite">
+		UPDATE BOOK_FAVORITE_INFO
+		<set>
+		DEL_FLAG = '0',
+		UPDATED_AT = NOW()
+		</set>
+		where USER_ID = #{userId,jdbcType=INTEGER} AND BOOK_ID =#{bookId,jdbcType=INTEGER}
+	</update>
+	
+	
+	
+	
+
+</mapper>

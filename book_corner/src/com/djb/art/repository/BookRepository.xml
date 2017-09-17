@@ -1,0 +1,588 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.djb.art.repository.BookRepository">
+
+	<resultMap id="BaseResultMap" type="com.djb.art.model.Book">
+		<id column="BOOK_ID" jdbcType="INTEGER" property="bookId" />
+		<result column="BOOK_BARCODE" jdbcType="VARCHAR" property="bookBarcode" />
+		<result column="BOOK_NAME" jdbcType="VARCHAR" property="bookName" />
+		<result column="BOOK_INTRO" jdbcType="VARCHAR" property="bookIntro" />
+		<result column="BOOK_TYPE_ID" jdbcType="INTEGER" property="bookTypeId" />
+		<result column="BOOK_TYPE" jdbcType="VARCHAR" property="bookType" />
+		<result column="BOOK_TYPE_COLOR" jdbcType="VARCHAR" property="bookTypeColor" />
+		<result column="SOURCE_ID" jdbcType="INTEGER" property="sourceId" />
+		<result column="SOURCE_TYPE_NAME" jdbcType="VARCHAR" property="sourceName" />
+		<result column="CONTRIBUTOR_ID" jdbcType="INTEGER" property="contributorId" />
+		<result column="DEPT" jdbcType="VARCHAR" property="dept" />
+		<result column="PRICE" jdbcType="DECIMAL" property="price" />
+		<result column="COST" jdbcType="DECIMAL" property="cost" />
+		<result column="PIC_PATH" jdbcType="VARCHAR" property="picPath" />
+		<result column="PICTURE1" jdbcType="VARCHAR" property="picture1" />
+		<result column="PICTURE2" jdbcType="VARCHAR" property="picture2" />
+		<result column="PICTURE3" jdbcType="VARCHAR" property="picture3" />
+		<result column="PICTURE4" jdbcType="VARCHAR" property="picture4" />
+		<result column="PICTURE5" jdbcType="VARCHAR" property="picture5" />
+		<result column="PICTURE6" jdbcType="VARCHAR" property="picture6" />
+		<result column="PICTURE7" jdbcType="VARCHAR" property="picture7" />
+		<result column="PICTURE8" jdbcType="VARCHAR" property="picture8" />
+		<result column="PICTURE9" jdbcType="VARCHAR" property="picture9" />
+		<result column="BORROW_FLAG" jdbcType="CHAR" property="borrowFlag" />
+		<result column="DEL_FLAG" jdbcType="CHAR" property="delFlag" />
+		<result column="CREATED_USER" jdbcType="INTEGER" property="createdUser" />
+		<result column="CREATED_AT" jdbcType="DATE" property="createdAt" />
+		<result column="UPDATED_USER" jdbcType="INTEGER" property="updatedUser" />
+		<result column="UPDATED_AT" jdbcType="DATE" property="updatedAt" />
+		<result column="BORROW_COUNT" jdbcType="INTEGER" property="borrowCount" />
+		<result column="FAVOURITE_COUNT" jdbcType="INTEGER" property="favouriteCount" />
+		<result column="PRAISE_COUNT" jdbcType="INTEGER" property="praiseCount" />
+		<result column="COMMENT_COUNT" jdbcType="INTEGER" property="commentCount" />
+		<result column="CURRENT_USER_BORROW" jdbcType="INTEGER" property="currentUserBorrow" />
+	</resultMap>
+	<resultMap id="BookCountMap" type="com.djb.art.model.BookCount">
+		<result column="BOOK_COUNT" jdbcType="INTEGER" property="count" />
+	</resultMap>
+	<sql id="Base_Column_List">
+		BOOK_BARCODE，BOOK_ID,BOOK_NAME,BORROW_FLAG,DEL_FLAG
+	</sql>
+
+	<!-- 查询上架图书数目 -->
+	<select id="selectBookCount"
+		resultMap="BookCountMap">
+		SELECT COUNT(*) AS BOOK_COUNT
+	        FROM  BOOK_INFO WHERE DEL_FLAG = '0' 
+	</select>
+
+	<!-- 查询所有图书数目 -->
+	<select id="selectAllBookCount"
+		resultMap="BookCountMap">
+		SELECT COUNT(*) AS BOOK_COUNT
+	        FROM  BOOK_INFO
+	</select>
+
+	<!-- 分页初始化查询 -->
+	<select id="selectAllBooks" parameterType="java.lang.Integer"
+		resultMap="BaseResultMap">
+		SELECT
+		A.BOOK_ID,A.BOOK_NAME,B.BOOK_TYPE_NAME AS BOOK_TYPE,A.BOOK_BARCODE,A.BOOK_NAME,A.BOOK_TYPE_ID,B.BOOK_TYPE_COLOR,
+	    A.CREATED_AT,A.BORROW_FLAG,A.PICTURE1,
+	        (SELECT COUNT(*) FROM BOOK_BORROW_INFO C WHERE C.BOOK_ID=A.BOOK_ID) AS BORROW_COUNT,
+	        (SELECT COUNT(*) FROM BOOK_FAVORITE_INFO D WHERE D.BOOK_ID=A.BOOK_ID AND D.DEL_FLAG = '1'  ) AS FAVOURITE_COUNT, 
+	        (SELECT COUNT(*) FROM BOOK_PRAISE_INFO E WHERE E.BOOK_ID=A.BOOK_ID) AS PRAISE_COUNT, 
+	        (SELECT COUNT(*) FROM BOOK_COMMENT_INFO F WHERE F.BOOK_ID=A.BOOK_ID AND F.DEL_FLAG = '0' ) AS COMMENT_COUNT
+	        FROM  BOOK_INFO A 
+	        LEFT JOIN  BOOK_TYPE_INFO B  ON A.BOOK_TYPE_ID = B.BOOK_TYPE_ID WHERE   A.DEL_FLAG = '0' 
+	        ORDER BY BOOK_ID LIMIT #{start,jdbcType=INTEGER},10
+	</select>
+	
+	<!-- 模糊查询 -->
+	<select id="selectBookByNameOrBarcode" parameterType="java.lang.String"
+		resultMap="BaseResultMap">
+		SELECT
+		A.BOOK_ID,B.BOOK_TYPE_NAME AS BOOK_TYPE,A.BOOK_BARCODE,A.BOOK_NAME,A.BOOK_TYPE_ID,B.BOOK_TYPE_COLOR,
+	    A.CREATED_AT,A.BORROW_FLAG,A.PICTURE1,
+	        (SELECT COUNT(*) FROM BOOK_BORROW_INFO C WHERE C.BOOK_ID=A.BOOK_ID) AS BORROW_COUNT,
+	        (SELECT COUNT(*) FROM BOOK_FAVORITE_INFO D WHERE D.BOOK_ID=A.BOOK_ID AND D.DEL_FLAG = '1'  ) AS FAVOURITE_COUNT, 
+	        (SELECT COUNT(*) FROM BOOK_PRAISE_INFO E WHERE E.BOOK_ID=A.BOOK_ID) AS PRAISE_COUNT, 
+	        (SELECT COUNT(*) FROM BOOK_COMMENT_INFO F WHERE F.BOOK_ID=A.BOOK_ID AND F.DEL_FLAG = '0' ) AS COMMENT_COUNT
+	        FROM  BOOK_INFO A 
+	        LEFT JOIN  BOOK_TYPE_INFO B  ON A.BOOK_TYPE_ID = B.BOOK_TYPE_ID 
+	        <where> A.DEL_FLAG = '0'
+	        and (A.BOOK_NAME like CONCAT('%',#{bookNameOrBarcode,jdbcType=VARCHAR},'%') 
+	        OR A.BOOK_BARCODE like CONCAT('%',#{bookNameOrBarcode,jdbcType=VARCHAR},'%')) 
+	      </where>
+	</select>
+	
+	<!-- 条件查询 
+	<select id="selectBooksByOptions" parameterType="java.lang.Integer"
+		resultMap="BaseResultMap">
+		SELECT
+		A.BOOK_ID,B.BOOK_TYPE_NAME AS BOOK_TYPE,A.BOOK_BARCODE,A.BOOK_NAME,A.BOOK_TYPE_ID,B.BOOK_TYPE_COLOR,
+	    A.CREATED_AT,A.BORROW_FLAG,
+	        (SELECT COUNT(*) FROM BOOK_BORROW_INFO C WHERE C.BOOK_ID=A.BOOK_ID) AS BORROW_COUNT,
+	        (SELECT COUNT(*) FROM BOOK_FAVORITE_INFO D WHERE D.BOOK_ID=A.BOOK_ID AND D.DEL_FLAG = '1'  ) AS FAVOURITE_COUNT, 
+	        (SELECT COUNT(*) FROM BOOK_PRAISE_INFO E WHERE E.BOOK_ID=A.BOOK_ID) AS PRAISE_COUNT, 
+	        (SELECT COUNT(*) FROM BOOK_COMMENT_INFO F WHERE F.BOOK_ID=A.BOOK_ID AND F.DEL_FLAG = '0' ) AS COMMENT_COUNT
+	        FROM  BOOK_INFO A 
+	        LEFT JOIN  BOOK_TYPE_INFO B  ON A.BOOK_TYPE_ID = B.BOOK_TYPE_ID 
+	        <where> A.DEL_FLAG = '0'
+	        <if test="arg2 != null">
+				AND A.BOOK_TYPE_ID= #{arg2,jdbcType=INTEGER}
+			</if>
+	        <if test="arg2 == 0">
+				
+			</if>
+			
+			<if test="arg0 == 0">
+				<if test="arg1 == 1">
+					ORDER BY CREATED_AT DESC
+				</if>
+		        <if test="arg1 == 2">
+					ORDER BY CREATED_AT ASC
+				</if>
+			</if>
+	        <if test="arg0 == 1">
+				ORDER BY BORROW_COUNT DESC
+				<if test="arg1 == 1">
+					,CREATED_AT DESC
+				</if>
+		        <if test="arg1 == 2">
+					,CREATED_AT ASC
+				</if>
+			</if>
+	        <if test="arg0 == 2">
+				ORDER BY BORROW_COUNT ASC
+				<if test="arg1 == 1">
+					,CREATED_AT DESC
+				</if>
+		        <if test="arg1 == 2">
+					,CREATED_AT ASC
+				</if>
+			</if>
+	      </where>
+	</select>-->
+	
+	<!-- 条件查询图书总数 -->
+	<select id="selectBooksByOptionsCount" parameterType="com.djb.art.model.BookOption" resultMap="BaseResultMap">
+		SELECT
+		A.BOOK_ID,B.BOOK_TYPE_NAME AS BOOK_TYPE,A.BOOK_BARCODE,A.BOOK_NAME,A.BOOK_TYPE_ID,B.BOOK_TYPE_COLOR,
+	    A.CREATED_AT,A.BORROW_FLAG,A.PICTURE1,
+	        (SELECT COUNT(*) FROM BOOK_BORROW_INFO C WHERE C.BOOK_ID=A.BOOK_ID) AS BORROW_COUNT,
+	        (SELECT COUNT(*) FROM BOOK_FAVORITE_INFO D WHERE D.BOOK_ID=A.BOOK_ID AND D.DEL_FLAG = '1'  ) AS FAVOURITE_COUNT, 
+	        (SELECT COUNT(*) FROM BOOK_PRAISE_INFO E WHERE E.BOOK_ID=A.BOOK_ID) AS PRAISE_COUNT, 
+	        (SELECT COUNT(*) FROM BOOK_COMMENT_INFO F WHERE F.BOOK_ID=A.BOOK_ID AND F.DEL_FLAG = '0' ) AS COMMENT_COUNT
+	        FROM  BOOK_INFO A 
+	        LEFT JOIN  BOOK_TYPE_INFO B  ON A.BOOK_TYPE_ID = B.BOOK_TYPE_ID 
+	        <where> A.DEL_FLAG = '0' AND (A.BOOK_NAME like CONCAT('%',<if test="bookNameOrBarcode==null">'%'</if><if test="bookNameOrBarcode!=null">#{bookNameOrBarcode,jdbcType=VARCHAR}</if>,'%') 
+	        OR A.BOOK_BARCODE like CONCAT('%',<if test="bookNameOrBarcode==null">'%'</if><if test="bookNameOrBarcode!=null">#{bookNameOrBarcode,jdbcType=VARCHAR}</if>,'%'))
+			<if test="bookType!= 0">
+				AND A.BOOK_TYPE_ID= #{bookType,jdbcType=INTEGER}
+			</if>
+			<if test="borrowTimes==0">
+				<if test="createdTime==1">
+					ORDER BY CREATED_AT DESC
+				</if>
+		        <if test="createdTime==2">
+					ORDER BY CREATED_AT ASC
+				</if>
+			</if>
+	        <if test="borrowTimes==1">
+				ORDER BY BORROW_COUNT DESC
+				<if test="createdTime==1">
+					,CREATED_AT DESC
+				</if>
+		        <if test="createdTime==2">
+					,CREATED_AT ASC
+				</if>
+			</if>
+	        <if test="borrowTimes==2">
+				ORDER BY BORROW_COUNT ASC
+				<if test="createdTime==1">
+					,CREATED_AT DESC
+				</if>
+		        <if test="createdTime==2">
+					,CREATED_AT ASC
+				</if>
+			</if>
+	      </where>
+	</select>
+	
+	<!-- 条件查询 -->
+	<select id="selectBooksByOptions" parameterType="com.djb.art.model.BookOption" resultMap="BaseResultMap">
+		SELECT
+		A.BOOK_ID,B.BOOK_TYPE_NAME AS BOOK_TYPE,A.BOOK_BARCODE,A.BOOK_NAME,A.BOOK_TYPE_ID,B.BOOK_TYPE_COLOR,
+	    A.CREATED_AT,A.BORROW_FLAG,A.PICTURE1,
+	        (SELECT COUNT(*) FROM BOOK_BORROW_INFO C WHERE C.BOOK_ID=A.BOOK_ID) AS BORROW_COUNT,
+	        (SELECT COUNT(*) FROM BOOK_FAVORITE_INFO D WHERE D.BOOK_ID=A.BOOK_ID AND D.DEL_FLAG = '1'  ) AS FAVOURITE_COUNT, 
+	        (SELECT COUNT(*) FROM BOOK_PRAISE_INFO E WHERE E.BOOK_ID=A.BOOK_ID) AS PRAISE_COUNT, 
+	        (SELECT COUNT(*) FROM BOOK_COMMENT_INFO F WHERE F.BOOK_ID=A.BOOK_ID AND F.DEL_FLAG = '0' ) AS COMMENT_COUNT,
+	        (SELECT COUNT(*) FROM BOOK_BORROW_INFO C WHERE C.USER_ID = #{userId,jdbcType=INTEGER} AND C.BOOK_ID = A.BOOK_ID AND C.RETURN_DATE IS NULL)
+	        AS CURRENT_USER_BORROW
+	        FROM  BOOK_INFO A 
+	        LEFT JOIN  BOOK_TYPE_INFO B  ON A.BOOK_TYPE_ID = B.BOOK_TYPE_ID 
+	        <where> A.DEL_FLAG = '0' AND (A.BOOK_NAME like CONCAT('%',<if test="bookNameOrBarcode==null">'%'</if><if test="bookNameOrBarcode!=null">#{bookNameOrBarcode,jdbcType=VARCHAR}</if>,'%') 
+	        OR A.BOOK_BARCODE like CONCAT('%',<if test="bookNameOrBarcode==null">'%'</if><if test="bookNameOrBarcode!=null">#{bookNameOrBarcode,jdbcType=VARCHAR}</if>,'%'))
+			<if test="bookType!= 0">
+				AND A.BOOK_TYPE_ID= #{bookType,jdbcType=INTEGER}
+			</if>
+			ORDER BY 
+			<if test="borrowTimes==0">
+				<if test="createdTime==1">
+					CREATED_AT DESC,
+				</if>
+		        <if test="createdTime==2">
+					CREATED_AT ASC,
+				</if>
+			</if>
+	        <if test="borrowTimes==1">
+				BORROW_COUNT DESC,
+				<if test="createdTime==1">
+					CREATED_AT DESC,
+				</if>
+		        <if test="createdTime==2">
+					CREATED_AT ASC,
+				</if>
+			</if>
+	        <if test="borrowTimes==2">
+				BORROW_COUNT ASC,
+				<if test="createdTime==1">
+					CREATED_AT DESC,
+				</if>
+		        <if test="createdTime==2">
+					CREATED_AT ASC,
+				</if>
+			</if>
+	      </where>
+	      BOOK_ID ASC
+	      LIMIT #{page,jdbcType=INTEGER},10
+	</select>
+		
+	<!-- 管理员条件查询图书总数 -->
+	<select id="selectBooksByOptionsCountManager" parameterType="com.djb.art.model.BookOption" resultMap="BaseResultMap">
+		SELECT
+		A.BOOK_ID,B.BOOK_TYPE_NAME AS BOOK_TYPE,A.BOOK_BARCODE,A.BOOK_NAME,A.BOOK_TYPE_ID,B.BOOK_TYPE_COLOR,
+	    A.CREATED_AT,A.BORROW_FLAG,A.DEL_FLAG,A.PICTURE1,
+	        (SELECT COUNT(*) FROM BOOK_BORROW_INFO C WHERE C.BOOK_ID=A.BOOK_ID) AS BORROW_COUNT,
+	        (SELECT COUNT(*) FROM BOOK_FAVORITE_INFO D WHERE D.BOOK_ID=A.BOOK_ID AND D.DEL_FLAG = '1'  ) AS FAVOURITE_COUNT, 
+	        (SELECT COUNT(*) FROM BOOK_PRAISE_INFO E WHERE E.BOOK_ID=A.BOOK_ID) AS PRAISE_COUNT, 
+	        (SELECT COUNT(*) FROM BOOK_COMMENT_INFO F WHERE F.BOOK_ID=A.BOOK_ID AND F.DEL_FLAG = '0' ) AS COMMENT_COUNT
+	        FROM  BOOK_INFO A 
+	        LEFT JOIN  BOOK_TYPE_INFO B  ON A.BOOK_TYPE_ID = B.BOOK_TYPE_ID 
+	        <where>(A.BOOK_NAME like CONCAT('%',<if test="bookNameOrBarcode==null">'%'</if><if test="bookNameOrBarcode!=null">#{bookNameOrBarcode,jdbcType=VARCHAR}</if>,'%') 
+	        OR A.BOOK_BARCODE like CONCAT('%',<if test="bookNameOrBarcode==null">'%'</if><if test="bookNameOrBarcode!=null">#{bookNameOrBarcode,jdbcType=VARCHAR}</if>,'%'))
+			<if test="bookType!= 0">
+				AND A.BOOK_TYPE_ID= #{bookType,jdbcType=INTEGER}
+			</if>
+			<!-- 1表示上架状态 -->
+			<if test="del_flag==1">
+				AND A.DEL_FLAG= '0'
+			</if>
+			<!-- 2表示下架状态 -->
+			<if test="del_flag==2">
+				AND A.DEL_FLAG= '1'
+			</if>
+			<if test="borrowTimes==0">
+				<if test="createdTime==1">
+					ORDER BY CREATED_AT DESC
+				</if>
+		        <if test="createdTime==2">
+					ORDER BY CREATED_AT ASC
+				</if>
+			</if>
+	        <if test="borrowTimes==1">
+				ORDER BY BORROW_COUNT DESC
+				<if test="createdTime==1">
+					,CREATED_AT DESC
+				</if>
+		        <if test="createdTime==2">
+					,CREATED_AT ASC
+				</if>
+			</if>
+	        <if test="borrowTimes==2">
+				ORDER BY BORROW_COUNT ASC
+				<if test="createdTime==1">
+					,CREATED_AT DESC
+				</if>
+		        <if test="createdTime==2">
+					,CREATED_AT ASC
+				</if>
+			</if>
+	      </where>
+	</select>
+	
+	<!-- 管理员条件查询 -->
+	<select id="selectBooksByOptionsManager" parameterType="com.djb.art.model.BookOption" resultMap="BaseResultMap">
+		SELECT
+		A.BOOK_ID,B.BOOK_TYPE_NAME AS BOOK_TYPE,A.BOOK_BARCODE,A.BOOK_NAME,A.BOOK_TYPE_ID,B.BOOK_TYPE_COLOR,
+	    A.CREATED_AT,A.BORROW_FLAG,A.DEL_FLAG,A.PICTURE1,
+	        (SELECT COUNT(*) FROM BOOK_BORROW_INFO C WHERE C.BOOK_ID=A.BOOK_ID) AS BORROW_COUNT,
+	        (SELECT COUNT(*) FROM BOOK_FAVORITE_INFO D WHERE D.BOOK_ID=A.BOOK_ID AND D.DEL_FLAG = '1'  ) AS FAVOURITE_COUNT, 
+	        (SELECT COUNT(*) FROM BOOK_PRAISE_INFO E WHERE E.BOOK_ID=A.BOOK_ID) AS PRAISE_COUNT, 
+	        (SELECT COUNT(*) FROM BOOK_COMMENT_INFO F WHERE F.BOOK_ID=A.BOOK_ID AND F.DEL_FLAG = '0' ) AS COMMENT_COUNT,
+	        (SELECT COUNT(*) FROM BOOK_BORROW_INFO C WHERE C.USER_ID = #{userId,jdbcType=INTEGER} AND C.BOOK_ID = A.BOOK_ID AND C.RETURN_DATE IS NULL)
+	        AS CURRENT_USER_BORROW
+	        FROM  BOOK_INFO A 
+	        LEFT JOIN  BOOK_TYPE_INFO B  ON A.BOOK_TYPE_ID = B.BOOK_TYPE_ID 
+	        <where>(A.BOOK_NAME like CONCAT('%',<if test="bookNameOrBarcode==null">'%'</if><if test="bookNameOrBarcode!=null">#{bookNameOrBarcode,jdbcType=VARCHAR}</if>,'%') 
+	        OR A.BOOK_BARCODE like CONCAT('%',<if test="bookNameOrBarcode==null">'%'</if><if test="bookNameOrBarcode!=null">#{bookNameOrBarcode,jdbcType=VARCHAR}</if>,'%'))
+			<if test="bookType!= 0">
+				AND A.BOOK_TYPE_ID= #{bookType,jdbcType=INTEGER}
+			</if>
+			<!-- 1表示上架状态 -->
+			<if test="del_flag==1">
+				AND A.DEL_FLAG= '0'
+			</if>
+			<!-- 2表示下架状态 -->
+			<if test="del_flag==2">
+				AND A.DEL_FLAG= '1'
+			</if>
+			ORDER BY 
+			<if test="borrowTimes==0">
+				<if test="createdTime==1">
+					CREATED_AT DESC,
+				</if>
+		        <if test="createdTime==2">
+					CREATED_AT ASC,
+				</if>
+			</if>
+	        <if test="borrowTimes==1">
+				BORROW_COUNT DESC,
+				<if test="createdTime==1">
+					CREATED_AT DESC,
+				</if>
+		        <if test="createdTime==2">
+					CREATED_AT ASC,
+				</if>
+			</if>
+	        <if test="borrowTimes==2">
+				BORROW_COUNT ASC,
+				<if test="createdTime==1">
+					CREATED_AT DESC,
+				</if>
+		        <if test="createdTime==2">
+					CREATED_AT ASC,
+				</if>
+			</if>
+	      </where>
+	      BOOK_ID ASC
+	      LIMIT #{page,jdbcType=INTEGER},10
+	</select>
+	
+	<!-- 取得图书详情页面图书的基本信息 （不包含书评）-->
+	<select id="selectBookById" parameterType="java.lang.Integer"
+		resultMap="BaseResultMap">
+			SELECT A.PIC_PATH,A.PICTURE1,A.PICTURE2,A.PICTURE3,A.PICTURE4,A.PICTURE5,A.PICTURE6,A.PICTURE7,A.PICTURE8,A.PICTURE9,
+                A.BOOK_INTRO,ST.SOURCE_TYPE_NAME,A.BOOK_ID,B.BOOK_TYPE_NAME,A.BOOK_BARCODE,A.BOOK_NAME,A.BOOK_TYPE_ID,B.BOOK_TYPE_COLOR,
+                A.CREATED_AT ,A.BORROW_FLAG,A.DEL_FLAG,
+                (SELECT COUNT(*) FROM BOOK_BORROW_INFO C WHERE C.BOOK_ID=A.BOOK_ID) AS BORROW_COUNT,
+                (SELECT COUNT(*) FROM BOOK_FAVORITE_INFO D WHERE D.BOOK_ID=A.BOOK_ID AND D.DEL_FLAG = '1'  ) AS FAVOURITE_COUNT, 
+                (SELECT COUNT(*) FROM BOOK_PRAISE_INFO E WHERE E.BOOK_ID=A.BOOK_ID) AS PRAISE_COUNT, 
+                (SELECT COUNT(*) FROM BOOK_COMMENT_INFO F WHERE F.BOOK_ID=A.BOOK_ID AND F.DEL_FLAG = '0' ) AS COMMENT_COUNT
+                FROM  BOOK_INFO A 
+                LEFT JOIN  BOOK_TYPE_INFO B  ON A.BOOK_TYPE_ID = B.BOOK_TYPE_ID 
+                LEFT JOIN  BOOK_SOURCE_TYPE_INFO ST  ON A.SOURCE_ID  = ST.SOURCE_TYPE_ID 
+                WHERE A.BOOK_ID = #{bookId,jdbcType=INTEGER}
+				LIMIT 1
+	</select>
+
+	<!-- 取得图书详情（图书信息编辑页面）-->
+	<select id="selectEditBookById" parameterType="java.lang.Integer"
+		resultMap="BaseResultMap">
+			SELECT *
+                FROM  BOOK_INFO A 
+                WHERE A.BOOK_ID = #{bookId,jdbcType=INTEGER}
+				LIMIT 1
+	</select>
+
+	<!-- 上月排行榜 -->
+	<select id="selectLastMonthChartBooks" 
+		resultMap="BaseResultMap">
+		SELECT A.BOOK_ID,A.BOOK_NAME,B.BOOK_TYPE_NAME AS BOOK_TYPE,A.BOOK_BARCODE,A.BOOK_NAME,A.BOOK_TYPE_ID,B.BOOK_TYPE_COLOR,
+	    		 A.CREATED_AT,A.BORROW_FLAG,
+                 (SELECT COUNT(*) FROM BOOK_BORROW_INFO C WHERE C.BOOK_ID=A.BOOK_ID) AS BORROW_COUNT,
+                 (SELECT COUNT(*) FROM BOOK_FAVORITE_INFO D WHERE D.BOOK_ID=A.BOOK_ID AND D.DEL_FLAG = '1'  ) AS FAVOURITE_COUNT, 
+                 (SELECT COUNT(*) FROM BOOK_PRAISE_INFO E WHERE E.BOOK_ID=A.BOOK_ID) AS PRAISE_COUNT, 
+                 (SELECT COUNT(*) FROM BOOK_COMMENT_INFO F WHERE F.BOOK_ID=A.BOOK_ID AND F.DEL_FLAG = '0' ) AS COMMENT_COUNT
+                 FROM  BOOK_INFO A 
+                 LEFT JOIN  BOOK_TYPE_INFO B  ON A.BOOK_TYPE_ID = B.BOOK_TYPE_ID 
+				 LEFT JOIN  BOOK_BORROW_INFO BBI  ON A.BOOK_ID = BBI.BOOK_ID 
+                 WHERE   A.DEL_FLAG = '0' AND
+                 PERIOD_DIFF(DATE_FORMAT(NOW(),'%Y%m'),DATE_FORMAT(BBI.BORROW_DATE,'%Y%m'))=1
+                 GROUP BY BBI.BOOK_ID 
+                 ORDER BY  BORROW_COUNT DESC
+	</select>
+	
+	<!-- 借阅排行榜 -->
+	<select id="selectBorrowChartBooks" 
+		resultMap="BaseResultMap">
+		SELECT A.BOOK_ID,A.BOOK_NAME,B.BOOK_TYPE_NAME AS BOOK_TYPE,A.BOOK_BARCODE,A.BOOK_NAME,A.BOOK_TYPE_ID,B.BOOK_TYPE_COLOR,
+	    		 A.CREATED_AT,A.BORROW_FLAG,
+                 (SELECT COUNT(*) FROM BOOK_BORROW_INFO C WHERE C.BOOK_ID=A.BOOK_ID) AS BORROW_COUNT,
+                 (SELECT COUNT(*) FROM BOOK_FAVORITE_INFO D WHERE D.BOOK_ID=A.BOOK_ID AND D.DEL_FLAG = '1'  ) AS FAVOURITE_COUNT, 
+                 (SELECT COUNT(*) FROM BOOK_PRAISE_INFO E WHERE E.BOOK_ID=A.BOOK_ID) AS PRAISE_COUNT, 
+                 (SELECT COUNT(*) FROM BOOK_COMMENT_INFO F WHERE F.BOOK_ID=A.BOOK_ID AND F.DEL_FLAG = '0' ) AS COMMENT_COUNT
+                 FROM  BOOK_INFO A 
+                 LEFT JOIN  BOOK_TYPE_INFO B  ON A.BOOK_TYPE_ID = B.BOOK_TYPE_ID 
+                 WHERE   A.DEL_FLAG = '0'
+                 ORDER BY  BORROW_COUNT DESC
+	</select>
+	
+	<!-- 收藏排行榜 -->
+	<select id="selectFavoriteChartBooks"
+		resultMap="BaseResultMap">
+		SELECT A.BOOK_ID,A.BOOK_NAME,B.BOOK_TYPE_NAME AS BOOK_TYPE,A.BOOK_BARCODE,A.BOOK_NAME,A.BOOK_TYPE_ID,B.BOOK_TYPE_COLOR,
+	    		 A.CREATED_AT,A.BORROW_FLAG,
+                 (SELECT COUNT(*) FROM BOOK_BORROW_INFO C WHERE C.BOOK_ID=A.BOOK_ID) AS BORROW_COUNT,
+                 (SELECT COUNT(*) FROM BOOK_FAVORITE_INFO D WHERE D.BOOK_ID=A.BOOK_ID AND D.DEL_FLAG = '1'  ) AS FAVOURITE_COUNT, 
+                 (SELECT COUNT(*) FROM BOOK_PRAISE_INFO E WHERE E.BOOK_ID=A.BOOK_ID) AS PRAISE_COUNT, 
+                 (SELECT COUNT(*) FROM BOOK_COMMENT_INFO F WHERE F.BOOK_ID=A.BOOK_ID AND F.DEL_FLAG = '0' ) AS COMMENT_COUNT
+                 FROM  BOOK_INFO A 
+                 LEFT JOIN  BOOK_TYPE_INFO B  ON A.BOOK_TYPE_ID = B.BOOK_TYPE_ID 
+                 WHERE   A.DEL_FLAG = '0'
+                 ORDER BY  FAVOURITE_COUNT DESC
+	</select>
+	
+	<!-- 人气排行榜 -->
+	<select id="selectHotChartBooks" 
+		resultMap="BaseResultMap">
+		SELECT A.BOOK_ID,A.BOOK_NAME,B.BOOK_TYPE_NAME AS BOOK_TYPE,A.BOOK_BARCODE,A.BOOK_NAME,A.BOOK_TYPE_ID,B.BOOK_TYPE_COLOR,
+	    		 A.CREATED_AT,A.BORROW_FLAG,
+                 (SELECT COUNT(*) FROM BOOK_BORROW_INFO C WHERE C.BOOK_ID=A.BOOK_ID) AS BORROW_COUNT,
+                 (SELECT COUNT(*) FROM BOOK_FAVORITE_INFO D WHERE D.BOOK_ID=A.BOOK_ID AND D.DEL_FLAG = '1'  ) AS FAVOURITE_COUNT, 
+                 (SELECT COUNT(*) FROM BOOK_PRAISE_INFO E WHERE E.BOOK_ID=A.BOOK_ID) AS PRAISE_COUNT, 
+                 (SELECT COUNT(*) FROM BOOK_COMMENT_INFO F WHERE F.BOOK_ID=A.BOOK_ID AND F.DEL_FLAG = '0' ) AS COMMENT_COUNT
+                 FROM  BOOK_INFO A 
+                 LEFT JOIN  BOOK_TYPE_INFO B  ON A.BOOK_TYPE_ID = B.BOOK_TYPE_ID 
+                 WHERE   A.DEL_FLAG = '0'
+                 ORDER BY  PRAISE_COUNT DESC
+	</select>
+	
+	<!-- 图书排行榜综合查询 -->
+	<select id="selectAllChartBooks" parameterType="com.djb.art.model.BookChartParam"
+		resultMap="BaseResultMap">
+		SELECT A.BOOK_ID,A.BOOK_NAME,B.BOOK_TYPE_NAME AS BOOK_TYPE,A.BOOK_BARCODE,A.BOOK_NAME,A.BOOK_TYPE_ID,B.BOOK_TYPE_COLOR,
+	    		 A.CREATED_AT,A.BORROW_FLAG,
+                 (SELECT COUNT(*) FROM BOOK_BORROW_INFO C WHERE C.BOOK_ID=A.BOOK_ID) AS BORROW_COUNT,
+                 (SELECT COUNT(*) FROM BOOK_FAVORITE_INFO D WHERE D.BOOK_ID=A.BOOK_ID AND D.DEL_FLAG = '1'  ) AS FAVOURITE_COUNT, 
+                 (SELECT COUNT(*) FROM BOOK_PRAISE_INFO E WHERE E.BOOK_ID=A.BOOK_ID) AS PRAISE_COUNT, 
+                 (SELECT COUNT(*) FROM BOOK_COMMENT_INFO F WHERE F.BOOK_ID=A.BOOK_ID AND F.DEL_FLAG = '0' ) AS COMMENT_COUNT
+                 FROM  BOOK_INFO A 
+                 LEFT JOIN  BOOK_TYPE_INFO B  ON A.BOOK_TYPE_ID = B.BOOK_TYPE_ID 
+                 <!-- 上月排行榜 -->
+           		 <if test="type==1">
+					 LEFT JOIN  BOOK_BORROW_INFO BBI  ON A.BOOK_ID = BBI.BOOK_ID 
+	                 WHERE   A.DEL_FLAG = '0' AND
+	                 PERIOD_DIFF(DATE_FORMAT(NOW(),'%Y%m'),DATE_FORMAT(BBI.BORROW_DATE,'%Y%m'))=1
+	                 GROUP BY BBI.BOOK_ID 
+	                 ORDER BY  BORROW_COUNT DESC
+				 </if>
+                 <!-- 借阅排行榜 -->
+           		 <if test="type==2">
+					 WHERE   A.DEL_FLAG = '0'
+	                 ORDER BY  BORROW_COUNT DESC
+				 </if>
+                 <!-- 收藏排行榜 -->
+           		 <if test="type==3">
+					 WHERE   A.DEL_FLAG = '0'
+	                 ORDER BY  FAVOURITE_COUNT DESC
+				 </if>
+                 <!-- 人气排行榜 -->
+           		 <if test="type==4">
+					 WHERE   A.DEL_FLAG = '0'
+	                 ORDER BY  PRAISE_COUNT DESC
+				 </if>
+				 LIMIT #{start,jdbcType=INTEGER},10
+	</select>
+	
+	
+	<!-- 图书排行榜综合查询的总数 -->
+	<select id="selectAllChartBooksCount" parameterType="com.djb.art.model.BookChartParam"
+		resultMap="BookCountMap">
+		SELECT COUNT(*) AS BOOK_COUNT
+                 <!-- 上月排行榜 -->
+           		 <if test="type==1">
+					FROM
+						(
+							SELECT
+								COUNT(*)
+							FROM
+								BOOK_BORROW_INFO BBI
+							LEFT JOIN BOOK_INFO A ON A.BOOK_ID = BBI.BOOK_ID
+							WHERE
+								A.DEL_FLAG = '0'
+							AND PERIOD_DIFF(
+								DATE_FORMAT(NOW(), '%Y%m'),
+								DATE_FORMAT(BBI.BORROW_DATE, '%Y%m')
+							) = 1
+							GROUP BY
+								BBI.BOOK_ID
+						) LAST_MONTH
+				 </if>
+                 <!-- 借阅排行榜 -->
+           		 <if test="type==2">
+	           		 FROM  BOOK_INFO A 
+	                 LEFT JOIN  BOOK_TYPE_INFO B  ON A.BOOK_TYPE_ID = B.BOOK_TYPE_ID 
+					 WHERE   A.DEL_FLAG = '0'
+				 </if>
+                 <!-- 收藏排行榜 -->
+           		 <if test="type==3">
+	           		 FROM  BOOK_INFO A 
+	                 LEFT JOIN  BOOK_TYPE_INFO B  ON A.BOOK_TYPE_ID = B.BOOK_TYPE_ID 
+					 WHERE   A.DEL_FLAG = '0'
+				 </if>
+                 <!-- 人气排行榜 -->
+           		 <if test="type==4">
+	           		 FROM  BOOK_INFO A 
+	                 LEFT JOIN  BOOK_TYPE_INFO B  ON A.BOOK_TYPE_ID = B.BOOK_TYPE_ID 
+					 WHERE   A.DEL_FLAG = '0'
+				 </if>
+	</select>
+	
+	<update id="enableBorrowStatus" parameterType="java.lang.Integer" >
+		UPDATE BOOK_INFO SET BORROW_FLAG='1',UPDATED_AT=NOW() WHERE DEL_FLAG = '0' AND BOOK_ID = #{bookId,jdbcType=INTEGER}
+	</update>
+	
+	<update id="disableBorrowStatus" parameterType="java.lang.Integer">
+		UPDATE BOOK_INFO SET BORROW_FLAG='0',UPDATED_AT=NOW() WHERE DEL_FLAG = '0' AND BOOK_ID = #{bookId,jdbcType=INTEGER}
+	</update>
+	
+	<!-- 用户页面的收藏记录 -->
+	<select id="selectMyFavorite"  parameterType="java.lang.Integer"
+		resultMap="BaseResultMap">
+		SELECT A.BOOK_ID,A.BOOK_NAME,A.BOOK_BARCODE,A.BOOK_NAME,A.BOOK_TYPE_ID,
+	    		 A.CREATED_AT,A.BORROW_FLAG,
+                 (SELECT COUNT(*) FROM BOOK_BORROW_INFO C WHERE C.BOOK_ID=A.BOOK_ID) AS BORROW_COUNT,
+                 (SELECT COUNT(*) FROM BOOK_FAVORITE_INFO D WHERE D.BOOK_ID=A.BOOK_ID AND D.DEL_FLAG = '1'  ) AS FAVOURITE_COUNT, 
+                 (SELECT COUNT(*) FROM BOOK_PRAISE_INFO E WHERE E.BOOK_ID=A.BOOK_ID) AS PRAISE_COUNT, 
+                 (SELECT COUNT(*) FROM BOOK_COMMENT_INFO F WHERE F.BOOK_ID=A.BOOK_ID AND F.DEL_FLAG = '0' ) AS COMMENT_COUNT
+                 FROM  BOOK_FAVORITE_INFO D
+                 LEFT JOIN  BOOK_INFO A  ON A.BOOK_ID = D.BOOK_ID
+                 WHERE   A.DEL_FLAG = '0' AND D.DEL_FLAG = '1'
+                 AND D.USER_ID = #{userId,jdbcType=INTEGER}
+                 ORDER BY A.BOOK_ID ASC
+	</select>
+		
+	<!-- 用户页面的点赞记录 -->
+	<select id="selectMyPraise"  parameterType="java.lang.Integer"
+		resultMap="BaseResultMap">
+		SELECT A.BOOK_ID,A.BOOK_NAME,A.BOOK_BARCODE,A.BOOK_NAME,A.BOOK_TYPE_ID,
+	    		 A.CREATED_AT,A.BORROW_FLAG,
+                 (SELECT COUNT(*) FROM BOOK_BORROW_INFO C WHERE C.BOOK_ID=A.BOOK_ID) AS BORROW_COUNT,
+                 (SELECT COUNT(*) FROM BOOK_FAVORITE_INFO D WHERE D.BOOK_ID=A.BOOK_ID AND D.DEL_FLAG = '1'  ) AS FAVOURITE_COUNT, 
+                 (SELECT COUNT(*) FROM BOOK_PRAISE_INFO E WHERE E.BOOK_ID=A.BOOK_ID) AS PRAISE_COUNT, 
+                 (SELECT COUNT(*) FROM BOOK_COMMENT_INFO F WHERE F.BOOK_ID=A.BOOK_ID AND F.DEL_FLAG = '0' ) AS COMMENT_COUNT
+                 FROM  BOOK_PRAISE_INFO E
+                 LEFT JOIN  BOOK_INFO A  ON A.BOOK_ID = E.BOOK_ID
+                 WHERE   A.DEL_FLAG = '0'
+                 AND E.USER_ID = #{userId,jdbcType=INTEGER}
+                 ORDER BY A.BOOK_ID ASC
+	</select>
+	
+	<!-- 插入新的图书记录 #{bookBarcode,jdbcType=VARCHAR} -->
+	<insert id="insertBook" parameterType="com.djb.art.model.Book" useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO BOOK_INFO(BOOK_BARCODE,BOOK_NAME,BOOK_INTRO, 
+				BOOK_TYPE_ID,SOURCE_ID,CONTRIBUTOR_ID,
+				BORROW_FLAG,DEL_FLAG,CREATED_USER,
+				UPDATED_USER,CREATED_AT,UPDATED_AT,PIC_PATH) 
+				VALUES(
+				#{bookBarcode,jdbcType=VARCHAR},#{bookName,jdbcType=VARCHAR},#{bookIntro,jdbcType=VARCHAR},
+				#{bookTypeId,jdbcType=INTEGER},#{sourceId,jdbcType=INTEGER},#{contributorId,jdbcType=INTEGER},
+				1,0,#{createdUser,jdbcType=INTEGER},
+				#{updatedUser,jdbcType=INTEGER},NOW(),NOW(),#{picPath,jdbcType=VARCHAR})
+	</insert>
+	
+	<!-- 查找最新一本书-->
+	<select id="selectLastBook"
+		resultMap="BaseResultMap">
+			SELECT A.BOOK_ID,A.BOOK_NAME,A.BOOK_BARCODE,A.BOOK_NAME,A.BOOK_TYPE_ID,
+	    		 A.CREATED_AT,A.BORROW_FLAG,
+                 (SELECT COUNT(*) FROM BOOK_BORROW_INFO C WHERE C.BOOK_ID=A.BOOK_ID) AS BORROW_COUNT,
+                 (SELECT COUNT(*) FROM BOOK_FAVORITE_INFO D WHERE D.BOOK_ID=A.BOOK_ID AND D.DEL_FLAG = '1'  ) AS FAVOURITE_COUNT, 
+                 (SELECT COUNT(*) FROM BOOK_PRAISE_INFO E WHERE E.BOOK_ID=A.BOOK_ID) AS PRAISE_COUNT, 
+                 (SELECT COUNT(*) FROM BOOK_COMMENT_INFO F WHERE F.BOOK_ID=A.BOOK_ID AND F.DEL_FLAG = '0' ) AS COMMENT_COUNT
+                 FROM  BOOK_INFO A
+                 LEFT JOIN  BOOK_PRAISE_INFO E  ON A.BOOK_ID = E.BOOK_ID
+                 WHERE   A.DEL_FLAG = '0'
+                 ORDER BY A.BOOK_ID DESC LIMIT 1
+	</select>
+	
+</mapper>

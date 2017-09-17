@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.djb.art.repository.BookSourceTypeRepository">
+
+	<resultMap id="BaseResultMap" type="com.djb.art.model.BookSourceType">
+		<id column="SOURCE_TYPE_ID" jdbcType="INTEGER" property="sourceTypeId" />
+		<result column="SOURCE_TYPE_NAME" jdbcType="VARCHAR" property="sourceTypeName" />
+		<result column="DEL_FLAG" jdbcType="CHAR" property="delFlag" />
+		<result column="CREATED_AT" jdbcType="DATE" property="createdAt" />
+		<result column="UPDATED_AT" jdbcType="DATE" property="updatedAt" />
+	</resultMap>
+
+	<!--查找所有的有效图书来源  -->
+	<select id="selectBookSourceTypes" 
+		resultMap="BaseResultMap">
+		SELECT *
+	    	FROM  BOOK_SOURCE_TYPE_INFO
+	    	WHERE DEL_FLAG='0'
+	</select>
+
+	<!--查找所有的有效图书来源  -->
+	<select id="selectAllBookSourceTypes" 
+		resultMap="BaseResultMap">
+		SELECT *
+	    	FROM  BOOK_SOURCE_TYPE_INFO
+	</select>
+
+	<!--插入图书来源  -->
+	<select id="insertSourceType" parameterType="com.djb.art.model.BookSourceType">
+		INSERT INTO BOOK_SOURCE_TYPE_INFO (SOURCE_TYPE_NAME,DEL_FLAG,CREATED_AT,UPDATED_AT)
+			VALUES (#{sourceTypeName,jdbcType=VARCHAR},'0',NOW(),NOW())
+	</select>
+
+	<!--更新图书来源  -->
+	<update id="updateBookSourceType" parameterType="com.djb.art.model.BookSourceType">
+		UPDATE BOOK_SOURCE_TYPE_INFO 
+			SET SOURCE_TYPE_NAME=#{sourceTypeName,jdbcType=VARCHAR},UPDATED_AT=NOW()
+			WHERE SOURCE_TYPE_ID=#{sourceTypeId,jdbcType=INTEGER}
+	</update>
+
+	<!--生效图书来源  -->
+	<update id="enableBookSourceType" parameterType="com.djb.art.model.BookSourceType">
+		UPDATE BOOK_SOURCE_TYPE_INFO 
+			SET DEL_FLAG='0',UPDATED_AT=NOW()
+			WHERE SOURCE_TYPE_ID=#{sourceTypeId,jdbcType=INTEGER}
+	</update>
+
+	<!--失效图书来源  -->
+	<update id="disableBookSourceType" parameterType="com.djb.art.model.BookSourceType">
+		UPDATE BOOK_SOURCE_TYPE_INFO 
+			SET DEL_FLAG='1',UPDATED_AT=NOW()
+			WHERE SOURCE_TYPE_ID=#{sourceTypeId,jdbcType=INTEGER}
+	</update>
+
+	<!--删除图书来源  -->
+	<delete id="deleteBookSourceType" parameterType="com.djb.art.model.BookSourceType">
+		DELETE FROM BOOK_SOURCE_TYPE_INFO 
+			WHERE SOURCE_TYPE_ID=#{sourceTypeId,jdbcType=INTEGER}
+	</delete>
+
+</mapper>

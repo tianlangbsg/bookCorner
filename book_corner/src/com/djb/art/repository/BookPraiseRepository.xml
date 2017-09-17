@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.djb.art.repository.BookPraiseRepository">
+
+	<resultMap id="BaseResultMap" type="com.djb.art.model.BookPraise">
+		<id column="PRAISE_ID" jdbcType="INTEGER" property="praiseId" />
+		<result column="BOOK_ID" jdbcType="INTEGER" property="bookId" />
+		<result column="USER_ID" jdbcType="INTEGER" property="userId" />
+		<result column="DEL_FLAG" jdbcType="CHAR" property="delFlag" />
+		<result column="CREATED_AT" jdbcType="DATE" property="createdAt" />
+		<result column="UPDATED_AT" jdbcType="DATE" property="updatedAt" />
+	</resultMap>
+	<sql id="Base_Column_List">
+		PRAISE_ID,BOOK_ID,USER_ID,DEL_FLAG,CREATED_AT,UPDATED_AT
+	</sql>
+
+	<!-- 创建点赞记录 -->
+	<insert id="insertPraise" parameterType="com.djb.art.model.BookPraise">
+		INSERT INTO  BOOK_PRAISE_INFO(
+		BOOK_ID,USER_ID,CREATED_AT,UPDATED_AT) VALUES(
+        #{bookId,jdbcType=INTEGER},
+        #{userId,jdbcType=INTEGER},
+        NOW(),
+        NOW()
+        )
+	</insert>
+	
+	<!-- 查询是否有过点赞记录-->
+	<select id="selectIfPraise" resultMap="BaseResultMap" parameterType="com.djb.art.model.BookPraise">
+		SELECT * FROM BOOK_PRAISE_INFO  WHERE BOOK_ID =  #{bookId,jdbcType=INTEGER} AND USER_ID = #{userId,jdbcType=INTEGER}
+		LIMIT 0,1
+	</select>
+	
+	<!--删除点赞记录）  -->
+	<delete id="cancelPraise" parameterType="com.djb.art.model.BookPraise">
+		DELETE FROM BOOK_PRAISE_INFO
+		where USER_ID = #{userId,jdbcType=INTEGER} AND BOOK_ID =#{bookId,jdbcType=INTEGER}
+	</delete>
+
+</mapper>

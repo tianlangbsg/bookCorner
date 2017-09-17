@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.djb.art.repository.UserRepository">
+
+	<resultMap id="BaseResultMap" type="com.djb.art.model.User">
+		<id column="USER_ID" jdbcType="INTEGER" property="userId" />
+		<result column="USER_CODE" jdbcType="CHAR" property="userCode" />
+		<result column="USER_FULLNAME" jdbcType="VARCHAR" property="userFullname" />
+		<result column="APPLY_AT" jdbcType="CHAR" property="applyAt" />
+		<result column="JOIN_AT" jdbcType="CHAR" property="joinAt" />
+		<result column="USER_AUTH_FLAG" jdbcType="CHAR" property="userAuthFlag" />
+		<result column="VALID_FLAG" jdbcType="CHAR" property="validFlag" />
+		<result column="OPEN_ID" jdbcType="VARCHAR" property="openId" />
+		<result column="CREATED_USER_ID" jdbcType="INTEGER" property="createdUserId" />
+		<result column="CREATED_AT" jdbcType="TIMESTAMP" property="createdAt" />
+		<result column="UPDATED_USER_ID" jdbcType="INTEGER" property="updatedUserId" />
+		<result column="UPDATED_AT" jdbcType="TIMESTAMP" property="updatedAt" />
+		<result column="BORROW_COUNT" jdbcType="INTEGER" property="borrowCount" />
+		<result column="STAYSTILL_COUNT" jdbcType="INTEGER" property="staystillCount" />
+		<result column="FAVOURITE_COUNT" jdbcType="INTEGER" property="favouriteCount" />
+		<result column="PRAISE_COUNT" jdbcType="INTEGER" property="praiseCount" />
+		<result column="COMMENT_COUNT" jdbcType="INTEGER" property="commentCount" />
+		<result column="LAST_BORROW_DATE" jdbcType="VARCHAR" property="lastBorrowDate"/>
+	</resultMap>
+	<sql id="Base_Column_List">
+		USER_ID, USER_CODE, USER_FULLNAME,OPEN_ID,JOIN_AT,VALID_FLAG,USER_AUTH_FLAG
+	</sql>
+
+	<!--根据用户ID取出用户对象  -->
+	<select id="selectUserById" parameterType="java.lang.Integer"
+		resultMap="BaseResultMap">
+		SELECT
+			<include refid="Base_Column_List" />
+			FROM USER_INFO
+			<where> USER_ID = #{userId,jdbcType=INTEGER}</where>
+	</select>
+
+	<!-- 取得用户中心的数目统计 -->
+	<select id="selectUserBookInfoById" parameterType="java.lang.Integer"
+		resultMap="BaseResultMap">
+			SELECT
+                (SELECT COUNT(*) FROM  BOOK_BORROW_INFO B LEFT JOIN  BOOK_INFO I  ON I.BOOK_ID = B.BOOK_ID WHERE I.DEL_FLAG='0'  AND B.USER_ID = #{userId,jdbcType=INTEGER}) AS BORROW_COUNT, 
+                (SELECT COUNT(*) FROM  BOOK_BORROW_INFO C LEFT JOIN  BOOK_INFO A  ON A.BOOK_ID = C.BOOK_ID  WHERE A.DEL_FLAG = '0' AND C.USER_ID =  #{userId,jdbcType=INTEGER} AND C.RETURN_DATE IS NULL) AS STAYSTILL_COUNT, 
+                (SELECT COUNT(*) FROM  BOOK_FAVORITE_INFO D LEFT JOIN  BOOK_INFO A  ON A.BOOK_ID = D.BOOK_ID  WHERE A.DEL_FLAG = '0' AND D.DEL_FLAG = '1' AND D.USER_ID = #{userId,jdbcType=INTEGER}) AS FAVOURITE_COUNT, 
+                (SELECT COUNT(*) FROM  BOOK_PRAISE_INFO E  LEFT JOIN  BOOK_INFO A  ON A.BOOK_ID = E.BOOK_ID  WHERE A.DEL_FLAG = '0'  AND E.USER_ID =  #{userId,jdbcType=INTEGER}) AS PRAISE_COUNT, 
+                (SELECT COUNT(*) FROM  BOOK_COMMENT_INFO F LEFT JOIN  BOOK_INFO A  ON A.BOOK_ID = F.BOOK_ID  WHERE A.DEL_FLAG = '0' AND F.DEL_FLAG='0' AND F.USER_ID =  #{userId,jdbcType=INTEGER}) AS COMMENT_COUNT
+	</select>
+
+	<!-- 取得用户已借阅仍未归还的数目 -->
+	<select id="selectUserStaystillCount" parameterType="java.lang.Integer"
+		resultType="java.lang.Integer">
+            SELECT COUNT(*) FROM  BOOK_BORROW_INFO C LEFT JOIN  BOOK_INFO A  ON A.BOOK_ID = C.BOOK_ID  WHERE A.DEL_FLAG = '0' AND C.USER_ID =  #{userId,jdbcType=INTEGER} AND C.RETURN_DATE IS NULL
+	</select>
+
+	<!-- 通过员工号和用户名取出登录账户 -->
+	<select id="selectUserByCodeAndFullname" parameterType="java.lang.String"
+		resultMap="BaseResultMap">
+		select
+		<include refid="Base_Column_List" />
+		from user
+		<where> USER_CODE = #{code,jdbcType=CHAR}</where>
+		and
+		<where>USER_FULLNAME = #{fullname,jdbcType=VARCHAR}</where>
+	</select>
+
+	<!-- 查找有效成员列表 -->
+	<select id="selectVaildUsers" resultMap="BaseResultMap">
+		SELECT USER_ID, USER_CODE, USER_FULLNAME,DATE_FORMAT(JOIN_AT,'%Y-%m-%d') AS JOIN_AT
+			FROM USER_INFO
+		<where> VALID_FLAG = '0'</where>
+	</select>
+
+	<!-- 查找失效成员列表 -->
+	<select id="selectInvaildUsers" resultMap="BaseResultMap">
+		SELECT USER_ID, USER_CODE, USER_FULLNAME,DATE_FORMAT(JOIN_AT,'%Y-%m-%d') AS JOIN_AT
+			FROM USER_INFO
+		<where> VALID_FLAG = '1'</where>
+	</select>
+
+	<!-- 查找具有图书管理员资格的成员列表 -->
+	<select id="selectBookManagers" resultMap="BaseResultMap">
+		SELECT USER_ID, USER_CODE, USER_FULLNAME,DATE_FORMAT(JOIN_AT,'%Y-%m-%d') AS JOIN_AT,DATE_FORMAT(APPLY_AT,'%Y-%m-%d') AS APPLY_AT
+			FROM USER_INFO
+		<where> USER_AUTH_FLAG = '1'</where>
+	</select>
+
+	<!-- 查找非图书管理员资格的成员列表 -->
+	<select id="selectNotBookManagers" resultMap="BaseResultMap">
+		SELECT USER_ID, USER_CODE, USER_FULLNAME,DATE_FORMAT(JOIN_AT,'%Y-%m-%d') AS JOIN_AT,DATE_FORMAT(APPLY_AT,'%Y-%m-%d') AS APPLY_AT
+			FROM USER_INFO
+		<where> USER_AUTH_FLAG = '0'</where>
+	</select>
+
+	<!-- 查找用户借阅排行榜（降序） -->
+	<select id="selectUserBorrowchart" resultMap="BaseResultMap">
+		SELECT USER_ID, USER_CODE, USER_FULLNAME,DATE_FORMAT(JOIN_AT,'%Y-%m-%d') AS JOIN_AT,
+			(SELECT COUNT(*) FROM  BOOK_BORROW_INFO BBI WHERE BBI.USER_ID= UI.USER_ID) AS BORROW_COUNT, 
+			(SELECT DATE_FORMAT(BORROW_DATE,'%Y-%m-%d') FROM BOOK_BORROW_INFO BBI WHERE BBI.USER_ID=UI.USER_ID ORDER BY BORROW_DATE DESC LIMIT 1) AS LAST_BORROW_DATE
+			FROM USER_INFO UI
+			ORDER BY BORROW_COUNT DESC
+	</select>
+
+	<!-- 查找用户排行榜（加入时间升序） -->
+	<select id="selectUserChartJoinAtAsc" resultMap="BaseResultMap">
+		SELECT USER_ID, USER_CODE, USER_FULLNAME,DATE_FORMAT(JOIN_AT,'%Y-%m-%d') AS JOIN_AT,
+			(SELECT COUNT(*) FROM  BOOK_BORROW_INFO BBI WHERE BBI.USER_ID= UI.USER_ID) AS BORROW_COUNT, 
+			(SELECT DATE_FORMAT(BORROW_DATE,'%Y-%m-%d') FROM BOOK_BORROW_INFO BBI WHERE BBI.USER_ID=UI.USER_ID ORDER BY BORROW_DATE DESC LIMIT 1) AS LAST_BORROW_DATE
+			FROM USER_INFO UI
+			ORDER BY JOIN_AT ASC
+	</select>
+
+	<!-- 查找用户排行榜（加入时间升序） -->
+	<select id="selectUserChartJoinAtDesc" resultMap="BaseResultMap">
+		SELECT USER_ID, USER_CODE, USER_FULLNAME,DATE_FORMAT(JOIN_AT,'%Y-%m-%d') AS JOIN_AT,
+			(SELECT COUNT(*) FROM  BOOK_BORROW_INFO BBI WHERE BBI.USER_ID= UI.USER_ID) AS BORROW_COUNT, 
+			(SELECT DATE_FORMAT(BORROW_DATE,'%Y-%m-%d') FROM BOOK_BORROW_INFO BBI WHERE BBI.USER_ID=UI.USER_ID ORDER BY BORROW_DATE DESC LIMIT 1) AS LAST_BORROW_DATE
+			FROM USER_INFO UI
+			ORDER BY JOIN_AT DESC
+	</select>
+	
+	<select id="selectUsers" parameterType="java.util.Map"
+		resultMap="BaseResultMap">
+		select
+		<include refid="Base_Column_List" />
+		from user
+		<where>
+			<if test="name != null">
+				AND NAME LIKE '%'||#{name}||'%'
+			</if>
+		</where>
+		<if test="start != null and limit != null">
+			LIMIT #{start},#{limit};
+		</if>
+	</select>
+	
+	<select id="selectAllUsers" resultMap="BaseResultMap">
+		SELECT
+		<include refid="Base_Column_List" />
+		FROM USER_INFO ORDER BY USER_ID ASC
+	</select>
+	
+	<select id="selectBlogByUserId" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+		select
+		u.ID, u.NAME, u.CODE, u.TEL,b.TITLE,b.CONTENT, b.CREATE_TIME
+		
+		from user u left join blog b ON u.ID=b.AUTHOR_ID
+		<where>u.ID= #{id,jdbcType=INTEGER}</where>
+	</select>
+	
+
+	<delete id="deleteUserById" parameterType="java.lang.Integer">
+		delete from user
+		<where> ID = #{id,jdbcType=INTEGER}</where>
+	</delete>
+
+	<select id="selectUserByCode" parameterType="java.lang.String"
+		resultMap="BaseResultMap">
+		select
+		<include refid="Base_Column_List" />
+		from user_info
+		<where> USER_CODE = #{code,jdbcType=VARCHAR} AND VALID_FLAG='0'</where>
+		limit 1
+	</select>
+	
+	<insert id="insertUser" parameterType="com.djb.art.model.User">
+		INSERT INTO USER_INFO (USER_CODE,USER_FULLNAME,APPLY_AT,
+			JOIN_AT,USER_AUTH_FLAG,OPEN_ID,
+			CREATED_USER_ID,CREATED_AT,UPDATED_USER_ID,UPDATED_AT)
+			VALUES
+			(
+				#{userCode,jdbcType=VARCHAR}, #{userFullname,jdbcType=VARCHAR},#{applyAt,jdbcType=VARCHAR},
+				DATE_FORMAT(NOW(),'%Y%m%d'),'0',#{openId,jdbcType=VARCHAR},
+				#{createdUserId,jdbcType=INTEGER}, NOW(),#{updatedUserId,jdbcType=INTEGER},NOW()
+			)
+	</insert>
+
+	<!-- 更新用户信息 -->
+	<update id="updateUser" parameterType="com.djb.art.model.User">
+		UPDATE USER_INFO
+		<set>
+		<if test="userFullname!= null"> USER_FULLNAME = #{userFullname,jdbcType=VARCHAR},</if>
+		<if test="userCode!= null">USER_CODE = #{userCode,jdbcType=VARCHAR},</if>
+		<if test="updatedUserId!= null">UPDATED_USER_ID = #{updatedUserId,jdbcType=INTEGER},</if>
+		JOIN_AT = DATE_FORMAT(NOW(),'%Y%m%d')
+		</set>
+		where USER_ID = #{userId,jdbcType=INTEGER}
+	</update>
+
+	<!-- 使用户生效-->
+	<update id="enableUser" parameterType="com.djb.art.model.User">
+		UPDATE USER_INFO
+		<set>
+		VALID_FLAG = '0',
+		UPDATED_USER_ID = #{updatedUserId,jdbcType=INTEGER},
+		JOIN_AT = DATE_FORMAT(NOW(),'%Y%m%d'),
+		UPDATED_AT = NOW()
+		</set>
+		where USER_ID = #{userId,jdbcType=INTEGER}
+	</update>
+
+	<!-- 使用户失效-->
+	<update id="disableUser" parameterType="com.djb.art.model.User">
+		UPDATE USER_INFO
+		<set>
+		VALID_FLAG = '1',
+		UPDATED_USER_ID = #{updatedUserId,jdbcType=INTEGER},
+		JOIN_AT = DATE_FORMAT(NOW(),'%Y%m%d'),
+		UPDATED_AT = NOW()
+		</set>
+		where USER_ID = #{userId,jdbcType=INTEGER}
+	</update>
+</mapper>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.djb.art.repository.SystemParmsetRepository">
+
+	<resultMap id="BaseResultMap" type="com.djb.art.model.SystemParmset">
+		<id column="PARM_ID" jdbcType="INTEGER" property="parmId" />
+		<result column="PARM_TITLE" jdbcType="VARCHAR" property="parmTitle" />
+		<result column="PARM_NAME_EN" jdbcType="VARCHAR" property="parmNameEn" />
+		<result column="SET_VALUES" jdbcType="VARCHAR" property="setValues" />
+		<result column="UNIT_NAME" jdbcType="VARCHAR" property="unitName" />
+		<result column="CREATED_USER_ID" jdbcType="INTEGER" property="createdUserId" />
+		<result column="CREATED_AT" jdbcType="DATE" property="createdAt" />
+		<result column="UPDATED_USER_ID" jdbcType="INTEGER" property="updatedUserId" />
+		<result column="UPDATED_AT" jdbcType="DATE" property="updatedAt" />
+	</resultMap>
+	<sql id="Base_Column_List">
+		PARM_ID,PARM_NAME_EN,SET_VALUES
+	</sql>
+
+	<!-- 创建点赞记录 -->
+	<insert id="insertPraise" parameterType="com.djb.art.model.BookPraise">
+		INSERT INTO  BOOK_PRAISE_INFO(
+		BOOK_ID,USER_ID,CREATED_AT,UPDATED_AT) VALUES(
+        #{bookId,jdbcType=INTEGER},
+        #{userId,jdbcType=INTEGER},
+        NOW(),
+        NOW()
+        )
+	</insert>
+	
+	<!-- 查询系统参数-->
+	<select id="selectParams" resultMap="BaseResultMap">
+		SELECT * FROM SYSTEM_PARMSET_INFO
+	</select>
+	
+	<!--修改默认借阅周期  -->
+	<update id="updateDefaultBorrowDays" parameterType="java.lang.String">
+		UPDATE SYSTEM_PARMSET_INFO SET
+			SET_VALUES=#{days,jdbcType=VARCHAR} where PARM_ID = 1
+	</update>
+	
+	<!--修改最大借阅本数  -->
+	<update id="updateMaxBorrowCount" parameterType="java.lang.String">
+		UPDATE SYSTEM_PARMSET_INFO SET
+			SET_VALUES=#{count,jdbcType=VARCHAR} where PARM_ID = 2
+	</update>
+
+</mapper>
